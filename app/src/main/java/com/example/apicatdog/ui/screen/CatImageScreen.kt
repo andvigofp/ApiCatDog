@@ -15,14 +15,23 @@ import coil.compose.rememberImagePainter
 import androidx.navigation.NavController
 import androidx.compose.foundation.border
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import com.example.apicatdog.ui.state.CatViewModel
+import com.example.apicatdog.ui.state.GameUiStateCat
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CatImageScreen(navController: NavController, catViewModel: CatViewModel = viewModel(factory = CatViewModel.Factory)) {
-    val catImages by catViewModel.catImages.collectAsState()
+    val catViewState by catViewModel.catViewState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        catViewModel.fetchCatImages()
+    }
 
     Scaffold(
         topBar = {
@@ -35,30 +44,59 @@ fun CatImageScreen(navController: NavController, catViewModel: CatViewModel = vi
                 }
             )
         },
-        content = {
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 150.dp), // Usar GridCells.Adaptive
-                modifier = Modifier.padding(it) // Padding to avoid overlap with TopAppBar
-            ) {
-                items(catImages) { catImage ->
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(1f)
-                            .padding(8.dp)
-                            .border(2.dp, Color.Black) // Añadir un borde gris
-                            .background(Color.Gray) // Añadir un fondo blanco
-                    ) {
-                        Image(
-                            painter = rememberImagePainter(catImage.url),
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxSize()
-                        )
+        content = { paddingValues: PaddingValues ->
+            when (val state = catViewState.uiState) {
+                is GameUiStateCat.Loading -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
                     }
                 }
-                item {
-                    LaunchedEffect(Unit) {
-                        catViewModel.fetchCatImages()
+                is GameUiStateCat.Error -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(text = state.message)
+                    }
+                }
+                is GameUiStateCat.Success -> {
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = 150.dp),
+                        modifier = Modifier.padding(paddingValues)
+                    ) {
+                        items(state.images) { catImage ->
+                            Box(
+                                modifier = Modifier
+                                    .size(150.dp)
+                                    .padding(8.dp)
+                                    .border(2.dp, Color.Black)
+                                    .background(Color.Gray)
+                                    .clickable {
+                                        navController.navigate("cat_detail/${catImage.id}")
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Image(
+                                    painter = rememberImagePainter(
+                                        data = catImage.url,
+                                        builder = {
+                                            crossfade(true)
+                                        }
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .size(100.dp)
+                                        .clip(CircleShape)
+                                )
+                            }
+                        }
+                        item {
+                            LaunchedEffect(Unit) {
+                                catViewModel.fetchCatImages()
+                            }
+                        }
+                    }
+                }
+                else -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(text = "Estado desconocido")
                     }
                 }
             }

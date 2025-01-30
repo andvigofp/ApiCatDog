@@ -1,5 +1,6 @@
 package com.example.apicatdog.ui.state
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
@@ -12,41 +13,82 @@ import kotlinx.coroutines.launch
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.apicatdog.model.ApiCatDog
+import kotlinx.coroutines.flow.asStateFlow
+
+
+sealed interface GameUiStateCat {
+    data object Loading : GameUiStateCat
+    data class Error(val message: String) : GameUiStateCat
+    data class Success(val images: List<CatImage>) : GameUiStateCat
+}
+
+data class CatViewState(
+    val uiState: GameUiStateCat = GameUiStateCat.Loading,
+    val images: List<CatImage> = emptyList(),
+    val errorMessage: String? = null
+)
+
 
 class CatViewModel(private val catApiService: CatApiService) : ViewModel() {
-    private val _catImages = MutableStateFlow<List<CatImage>>(emptyList())
-    val catImages: StateFlow<List<CatImage>> = _catImages
+    private val _catViewState = MutableStateFlow(CatViewState(uiState = GameUiStateCat.Loading))
+    val catViewState: StateFlow<CatViewState> = _catViewState.asStateFlow()
 
     private var currentPage = 0
-
-    init {
-        fetchCatImages()
-    }
+    private var isLoadingMore = false
 
     fun fetchCatImages() {
         viewModelScope.launch {
+            if (isLoadingMore) return@launch
+            isLoadingMore = true
             try {
                 val newImages = catApiService.getCatImages(limit = 50, page = currentPage)
-                _catImages.value = _catImages.value + newImages
+                val allImages = _catViewState.value.images + newImages
+                _catViewState.value = CatViewState(
+                    uiState = GameUiStateCat.Success(allImages),
+                    images = allImages
+                )
+                Log.d("CatViewModel", "Fetched ${newImages.size} new images, total images: ${allImages.size}")
                 currentPage++
             } catch (e: Exception) {
-                // Manejar la excepción aquí
-                e.printStackTrace()
+                _catViewState.value = CatViewState(
+                    uiState = GameUiStateCat.Error("Error al cargar las imágenes"),
+                    errorMessage = e.message
+                )
+                Log.e("CatViewModel", "Error fetching images", e)
+            } finally {
+                isLoadingMore = false
             }
         }
     }
 
+    fun fetchCatDetails(catId: String) {
+        viewModelScope.launch {
+            _catViewState.value = CatViewState(uiState = GameUiStateCat.Loading)
+            try {
+                val catDetail = catApiService.getCatDetails(catId)
+                _catViewState.value = CatViewState(
+                    uiState = GameUiStateCat.Success(listOf(catDetail)),
+                    images = listOf(catDetail)
+                )
+                Log.d("CatViewModel", "Fetched cat details: $catDetail")
+            } catch (e: Exception) {
+                _catViewState.value = CatViewState(
+                    uiState = GameUiStateCat.Error("Error al cargar los detalles del gato"),
+                    errorMessage = e.message
+                )
+                Log.e("CatViewModel", "Error fetching cat details", e)
+            }
+        }
+    }
+
+
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
-                val application = (this[APPLICATION_KEY] as ApiCatDog)
+                val application = this[APPLICATION_KEY] as ApiCatDog
                 val catApiService = application.catApiService
                 CatViewModel(catApiService)
             }
         }
     }
 }
-
-
-
-
