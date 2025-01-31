@@ -116,7 +116,22 @@ fun DogDetailScreen(navController: NavController, dogId: String, dogViewModel: D
                                         modifier = Modifier.padding(16.dp)
                                     )
                                     Text(
-                                        text = dog.breeds.firstOrNull()?.description ?: "Descripción no disponible",
+                                        text = dog.breeds.firstOrNull()?.bred_for ?: "Sin temperamento",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.padding(16.dp)
+                                    )
+                                    Text(
+                                        text = dog.breeds.firstOrNull()?.breed_group ?: "Sin temperamento",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.padding(16.dp)
+                                    )
+                                    Text(
+                                        text = dog.breeds.firstOrNull()?.life_span ?: "Sin temperamento",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.padding(16.dp)
+                                    )
+                                    Text(
+                                        text = dog.breeds.firstOrNull()?.temperament ?: "Sin temperamento",
                                         style = MaterialTheme.typography.bodyMedium,
                                         modifier = Modifier.padding(16.dp)
                                     )

@@ -15,8 +15,17 @@ data class DogImage(
     val height: Int,
     @SerialName("breeds")
     val breeds: List<BreedDog> = emptyList(),
-    @SerialName("description")
-    val description: String? = null
+    @SerialName("favourite")
+    val favourite: Favourite? = null,
+    @SerialName("temperament")
+    val temperament: String? = null,
+    @SerialName("bred_for")
+    val bred_for: String? = null,
+    @SerialName("breed_group")
+    val breed_group: String? = null,
+    @SerialName("life_span")
+    val life_span: String? = null
+
 )
 
 @Serializable
@@ -26,7 +35,14 @@ data class BreedDog(
     @SerialName("name")
     val name: String,
     @SerialName("description")
-    val description: String
+    val temperament: String,
+    @SerialName("bred_for")
+    val bred_for: String,
+    @SerialName("breed_group")
+    val breed_group: String,
+    @SerialName("life_span")
+    val life_span: String
+
 )
 
 
