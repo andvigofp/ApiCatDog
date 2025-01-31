@@ -27,7 +27,6 @@ data class DogViewState(
     val errorMessage: String? = null
 )
 
-
 class DogViewModel(private val dogApiService: DogApiService) : ViewModel() {
     private val _dogViewState = MutableStateFlow(DogViewState(uiState = GameUiStateDog.Loading))
     val dogViewState: StateFlow<DogViewState> = _dogViewState.asStateFlow()
@@ -46,10 +45,7 @@ class DogViewModel(private val dogApiService: DogApiService) : ViewModel() {
                     uiState = GameUiStateDog.Success(allImages),
                     images = allImages
                 )
-                Log.d(
-                    "DogViewModel",
-                    "Fetched ${newImages.size} new images, total images: ${allImages.size}"
-                )
+                Log.d("DogViewModel", "Fetched ${newImages.size} new images, total images: ${allImages.size}")
                 currentPage++
             } catch (e: Exception) {
                 _dogViewState.value = DogViewState(
@@ -59,6 +55,32 @@ class DogViewModel(private val dogApiService: DogApiService) : ViewModel() {
                 Log.e("DogViewModel", "Error fetching images", e)
             } finally {
                 isLoadingMore = false
+            }
+        }
+    }
+
+    fun initialFetchDogImages() {
+        viewModelScope.launch {
+            _dogViewState.value = DogViewState(uiState = GameUiStateDog.Loading)
+            try {
+                val initialImages = mutableListOf<DogImage>()
+                var newImages: List<DogImage>
+                do {
+                    newImages = dogApiService.getDogImages(limit = 50, page = currentPage)
+                    initialImages.addAll(newImages)
+                    currentPage++
+                } while (newImages.isNotEmpty() && initialImages.size < 100)  // Cargamos lotes hasta tener al menos 100 imágenes o no haya más imágenes
+                _dogViewState.value = DogViewState(
+                    uiState = GameUiStateDog.Success(initialImages),
+                    images = initialImages
+                )
+                Log.d("DogViewModel", "Fetched ${initialImages.size} initial images")
+            } catch (e: Exception) {
+                _dogViewState.value = DogViewState(
+                    uiState = GameUiStateDog.Error("Error al cargar las imágenes"),
+                    errorMessage = e.message
+                )
+                Log.e("DogViewModel", "Error fetching initial images", e)
             }
         }
     }
@@ -91,6 +113,5 @@ class DogViewModel(private val dogApiService: DogApiService) : ViewModel() {
                 DogViewModel(dogApiService)
             }
         }
-
     }
 }

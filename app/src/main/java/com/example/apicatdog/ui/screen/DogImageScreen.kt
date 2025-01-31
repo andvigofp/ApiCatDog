@@ -21,6 +21,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberImagePainter
 import androidx.navigation.NavController
+import coil.compose.ImagePainter
+import com.example.apicatdog.R
 import com.example.apicatdog.ui.state.DogViewModel
 import com.example.apicatdog.ui.state.GameUiStateDog
 
@@ -30,7 +32,7 @@ fun DogImageScreen(navController: NavController, dogViewModel: DogViewModel = vi
     val dogViewState by dogViewModel.dogViewState.collectAsState()
 
     LaunchedEffect(Unit) {
-        dogViewModel.fetchDogImages()
+        dogViewModel.initialFetchDogImages()
     }
 
     Scaffold(
@@ -62,29 +64,40 @@ fun DogImageScreen(navController: NavController, dogViewModel: DogViewModel = vi
                         modifier = Modifier.padding(paddingValues)
                     ) {
                         items(state.images) { dogImage ->
+                            val painter = rememberImagePainter(
+                                data = dogImage.url,
+                                builder = {
+                                    crossfade(true)
+                                }
+                            )
                             Box(
                                 modifier = Modifier
                                     .size(150.dp)
                                     .padding(8.dp)
                                     .border(2.dp, Color.Black)
-                                    .background(Color.Gray)
+                                    .background(Color.Gray)  // Color de fondo mientras se carga la imagen
                                     .clickable {
                                         navController.navigate("dog_detail/${dogImage.id}")
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Image(
-                                    painter = rememberImagePainter(
-                                        data = dogImage.url,
-                                        builder = {
-                                            crossfade(true)
-                                        }
-                                    ),
-                                    contentDescription = null,
-                                    modifier = Modifier
-                                        .size(100.dp)
-                                        .clip(CircleShape)
-                                )
+                                if (painter.state is ImagePainter.State.Loading) {
+                                    CircularProgressIndicator()
+                                } else if (painter.state is ImagePainter.State.Error) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(100.dp)
+                                            .background(Color.Red)
+                                    )
+                                } else {
+                                    Image(
+                                        painter = painter,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .size(100.dp)
+                                            .clip(CircleShape)
+                                    )
+                                }
                             }
                         }
                         item {

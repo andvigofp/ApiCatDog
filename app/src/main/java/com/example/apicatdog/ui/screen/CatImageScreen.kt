@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
+import coil.compose.ImagePainter
 import com.example.apicatdog.ui.state.CatViewModel
 import com.example.apicatdog.ui.state.GameUiStateCat
 
@@ -30,7 +31,7 @@ fun CatImageScreen(navController: NavController, catViewModel: CatViewModel = vi
     val catViewState by catViewModel.catViewState.collectAsState()
 
     LaunchedEffect(Unit) {
-        catViewModel.fetchCatImages()
+        catViewModel.initialFetchCatImages()
     }
 
     Scaffold(
@@ -62,29 +63,40 @@ fun CatImageScreen(navController: NavController, catViewModel: CatViewModel = vi
                         modifier = Modifier.padding(paddingValues)
                     ) {
                         items(state.images) { catImage ->
+                            val painter = rememberImagePainter(
+                                data = catImage.url,
+                                builder = {
+                                    crossfade(true)
+                                }
+                            )
                             Box(
                                 modifier = Modifier
                                     .size(150.dp)
                                     .padding(8.dp)
                                     .border(2.dp, Color.Black)
-                                    .background(Color.Gray)
+                                    .background(Color.Gray)  // Color de fondo mientras se carga la imagen
                                     .clickable {
                                         navController.navigate("cat_detail/${catImage.id}")
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Image(
-                                    painter = rememberImagePainter(
-                                        data = catImage.url,
-                                        builder = {
-                                            crossfade(true)
-                                        }
-                                    ),
-                                    contentDescription = null,
-                                    modifier = Modifier
-                                        .size(100.dp)
-                                        .clip(CircleShape)
-                                )
+                                if (painter.state is ImagePainter.State.Loading) {
+                                    CircularProgressIndicator()
+                                } else if (painter.state is ImagePainter.State.Error) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(100.dp)
+                                            .background(Color.Red)
+                                    )
+                                } else {
+                                    Image(
+                                        painter = painter,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .size(100.dp)
+                                            .clip(CircleShape)
+                                    )
+                                }
                             }
                         }
                         item {

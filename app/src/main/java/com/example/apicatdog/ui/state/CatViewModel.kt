@@ -61,6 +61,32 @@ class CatViewModel(private val catApiService: CatApiService) : ViewModel() {
         }
     }
 
+    fun initialFetchCatImages() {
+        viewModelScope.launch {
+            _catViewState.value = CatViewState(uiState = GameUiStateCat.Loading)
+            try {
+                val initialImages = mutableListOf<CatImage>()
+                var newImages: List<CatImage>
+                do {
+                    newImages = catApiService.getCatImages(limit = 50, page = currentPage)
+                    initialImages.addAll(newImages)
+                    currentPage++
+                } while (newImages.isNotEmpty() && initialImages.size < 100)  // Cargamos lotes hasta tener al menos 100 imágenes o no haya más imágenes
+                _catViewState.value = CatViewState(
+                    uiState = GameUiStateCat.Success(initialImages),
+                    images = initialImages
+                )
+                Log.d("CatViewModel", "Fetched ${initialImages.size} initial images")
+            } catch (e: Exception) {
+                _catViewState.value = CatViewState(
+                    uiState = GameUiStateCat.Error("Error al cargar las imágenes"),
+                    errorMessage = e.message
+                )
+                Log.e("CatViewModel", "Error fetching initial images", e)
+            }
+        }
+    }
+
     fun fetchCatDetails(catId: String) {
         viewModelScope.launch {
             _catViewState.value = CatViewState(uiState = GameUiStateCat.Loading)
@@ -80,7 +106,6 @@ class CatViewModel(private val catApiService: CatApiService) : ViewModel() {
             }
         }
     }
-
 
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
